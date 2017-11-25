@@ -7,12 +7,15 @@ import base64
 
 # create a socket object
 serversocket = socket.socket(
-	        socket.AF_INET, socket.SOCK_STREAM) 
+	        socket.AF_INET, socket.SOCK_STREAM)
+
+#Sets reusator so previous executions doesn't blocks the address with waiting packets
+serversocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
 # get local machine name
 host = socket.gethostname()                           
 
-port = 8080                                          
+port = 8081                                          
 
 # bind to the port
 serversocket.bind((host, port))                                  
@@ -27,21 +30,30 @@ cam = pygame.camera.Camera(cams[0])
 cam.start()
 
 while True:
-    # establish a connection
-    clientsocket,addr = serversocket.accept()      
+    try:
+        # establish a connection
+        clientsocket,addr = serversocket.accept()      
 
-    print("Got a connection from %s" % str(addr))
-    img = cam.get_image()
-    pygame.image.save(img, "current_image.jpg")
-    image_data = open('current_image.jpg', 'rb')
-    current_data = image_data.read(1024)
+        print("Got a connection from %s" % str(addr))
+        img = cam.get_image()
+        pygame.image.save(img, "current_image.jpg")
+        image_data = open('current_image.jpg', 'rb')
+        current_data = image_data.read(1024)
 
-    while (current_data):
-       clientsocket.send(current_data)
-       print('Sent ',repr(current_data))
-       current_data = image_data.read(1024)
-    #response_data = base64.b64encode(image_data).decode('utf-8')
-    
-    clientsocket.close()
+        while (current_data):
+            try:
+                clientsocket.send(current_data)    
+            except:
+
+                break
+            current_data = image_data.read(1024)
+
+        clientsocket.close()
+
+    except KeyboardInterrupt:
+        break
+
 
 cam.stop()
+
+print("Service closed")
